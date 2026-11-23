@@ -109,11 +109,17 @@ def get_turso_client():
     # 여러 번 호출돼도(스크립트를 여러 번 실행해도) 안전하다.
     # 스키마: code(종목코드)+date(YYYYMMDD)를 합쳐 하나의 행을 유일하게 식별하는 기본키(PRIMARY
     # KEY)로 지정 — "같은 종목의 같은 날짜"는 딱 하나의 행만 존재할 수 있다는 제약이다.
-    client.execute(
-        "CREATE TABLE IF NOT EXISTS price_history ("
-        "code TEXT NOT NULL, date TEXT NOT NULL, close INTEGER NOT NULL, "
-        "PRIMARY KEY (code, date))"
-    )
+    # CREATE TABLE이 실패하면(토큰 오류 등) 이미 만든 클라이언트를 닫고 예외를 다시 던진다.
+    # 안 닫으면 클라이언트가 백그라운드에 남아 스크립트가 끝나지 않고 멈춘다.
+    try:
+        client.execute(
+            "CREATE TABLE IF NOT EXISTS price_history ("
+            "code TEXT NOT NULL, date TEXT NOT NULL, close INTEGER NOT NULL, "
+            "PRIMARY KEY (code, date))"
+        )
+    except Exception:
+        client.close()
+        raise
     return client
 
 
